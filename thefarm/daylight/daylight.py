@@ -63,7 +63,7 @@ class DaylightServer:
         """       
 
         url_base = "https://api.sunrise-sunset.org/json?lat={:.7f}&lng={:.7f}&date=today&formatted=0"
-        time_format = "time_format":"%Y-%m-%dT%H:%M:%S+00:00"
+        time_format = "%Y-%m-%dT%H:%M:%S+00:00"
 
         url = url_base.format(self._latitude,self._longitude)
 
