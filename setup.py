@@ -15,6 +15,6 @@ setup(name='thefarm',
       url='https://github.com/harmsm/thefarm',
       download_url='https://XX',
       zip_safe=False,
-      install_requires=[],
+      install_requires=["pillow","picamera","tornado"],
       classifiers=[])
 

@@ -1,5 +1,12 @@
 {
     "latitude":44.025038,
     "longitude":-123.085155,
-    "twilight":"civil"
+    "twilight":"civil",
+    "camera":{
+        "interval":500
+    },
+    "door":{
+        "something":"else"
+    }
 }
+
