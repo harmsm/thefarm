@@ -28,7 +28,10 @@ def main(argv=None):
     print("Logging to {}".format(log_file))
     logging.basicConfig(filename=log_file,level=logging.INFO)
     logging.info("Starting The Farm using {}.".format(json_file))
-    ##     
+
+    # Do looping ... 
+
+
     logging.info("Stopping The Farm.")        
 
 if __name__ == "__main__":
