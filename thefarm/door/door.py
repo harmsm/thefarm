@@ -7,10 +7,9 @@ __author__ = "Michael J. Harms"
 __date__ = "2017-09-23"
 
 import PyCmdMessenger
-
 import serial
 
-import os, time
+import os, time, logging
 
 
 class DoorException(Exception):
@@ -18,7 +17,9 @@ class DoorException(Exception):
     General error class for this module.
     """
 
-    pass
+    def __init__(self,*args,**kwargs):
+        logging.warning(args[0])
+        super().__init__(*args,**kwargs)
 
 class Door:
     """
@@ -118,16 +119,15 @@ class Door:
         """
         Return sensor status.
         """
-       
+      
+        # Query arduino  
         self._arduino_msg.send("query")
         result = self._arduino_msg.receive()
-
         if result[0] != "query_return":
             err = "door query failed.\n"
             raise DoorException(err)
-        
- 
-        # do a check thing
+      
+        # Parse result  
         self._ambient_light = result[1][0]
         open_sensor = result[1][1]
         closed_sensor = result[1][2]
@@ -144,6 +144,7 @@ class Door:
  
     def open_door(self):
         """
+        Open the door.
         """
         # send open door command
         self._arduino_msg.send("open_door")
@@ -157,6 +158,7 @@ class Door:
 
     def close_door(self):
         """
+        Close the door.
         """
         # send close door command
         self._arduino_msg.send("close_door")

@@ -6,7 +6,7 @@
         "interval":500
     },
     "door":{
-        "something":"else"
+        "something":"COOP_HARDWARE"
     }
 }
 

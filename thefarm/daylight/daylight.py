@@ -7,14 +7,16 @@ __date__ = "2017-04-12"
 __author__ = "Michael J. Harms (harmsm@gmail.com)"
 
 import urllib.request, json
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 class DaylightException(Exception):
     """
     Exception for this module.
     """
-    pass
+    def __init__(self,*args,**kwargs):
+        logging.warning(args[0])
+        super().__init__(*args,**kwargs)
 
 class DaylightServer:
     """
@@ -33,9 +35,11 @@ class DaylightServer:
         if self._twilight not in ["civil","nautical","astronomical"]:
             err = "twilight \"{}\" not recognized.  should be civil, nautical or astronomical\n".format(self._twilight)
             raise DaylightException(err) 
-       
+
+        self._utc_offset = datetime.now() - datetime.utcnow()
+
         # Update 
-        self._update()
+        self.update()
 
     def update(self):
         """
@@ -45,9 +49,11 @@ class DaylightServer:
             self._grab_from_server()
             self._last_check_time = datetime.now() 
         except (ValueError,urllib.error.URLError) as e:
-            logging.warning("Problem downloading sunrise/sunset times")
+            err = "Problem downloading sunrise/sunset times"
+            raise DaylightException(err)
         except:
-            logging.warning("Unknown problem updating sunrise/sunset times!")
+            err = "Unknown problem updating sunrise/sunset times!"
+            raise DaylightException(err)
  
     def _grab_from_server(self):
         """
@@ -74,14 +80,14 @@ class DaylightServer:
         # Make sure the read worked 
         if json_data['status'] != "OK":
             err = "server json could not be read\n"
-            raise ValueError(err)
+            raise DaylightException(err)
 
         # Parse resulting json
         twilight_begin = json_data["results"]["{}_twilight_begin".format(self._twilight)]
         twilight_end   = json_data["results"]["{}_twilight_end".format(self._twilight)]
         sunrise = json_data["results"]["sunrise"]
         sunset  = json_data["results"]["sunset"]
-      
+
         # Convert to dateime objects 
         self._twilight_begin = datetime.strptime(twilight_begin,time_format) + self._utc_offset
         self._twilight_end   = datetime.strptime(twilight_end,time_format)   + self._utc_offset
@@ -95,25 +101,25 @@ class DaylightServer:
     @property
     def sunrise(self):
         if self._sunrise.day != self._last_check_time.day:
-            self._get_suntimes() 
+            self._grab_from_server() 
         return self._sunrise
 
     @property
     def sunset(self):
         if self._sunset.day != self._last_check_time.day:
-            self._get_suntimes() 
+            self._grab_from_server() 
         return self._sunset
 
     @property
     def twilight_begin(self):
         if self._twilight_end != self._last_check_time.day:
-            self._get_suntimes() 
+            self._grab_from_server() 
         return self._twilight_begin
 
     @property
     def twilight_end(self):
         if self._twilight_end.day != self._last_check_time.day:
-            self._get_suntimes() 
+            self._grab_from_server() 
         return self._twilight_end
 
 

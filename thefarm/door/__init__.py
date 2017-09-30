@@ -1,3 +1,3 @@
 __all__ = ["door"]
 
-from .door import DoorError, Door
+from .door import DoorException, Door

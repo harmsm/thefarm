@@ -1,7 +1,15 @@
-
-import picamera
+from picamera import PiCamera
 from PIL import Image, ImageDraw, ImageFont
+
 import time, os, random, string
+
+class CameraException(Exception):
+    """
+    Exception for this module.
+    """
+    def __init__(self,*args,**kwargs):
+        logging.warning(args[0])
+        super().__init__(*args,**kwargs)
 
 class CameraMonitor:
 
@@ -22,7 +30,7 @@ class CameraMonitor:
                                              for i in range(10)]))
 
         # Take image
-        c = picamera.PiCamera()
+        c = PiCamera()
         c.resolution = self._resolution
         c.capture(tmp)
 
