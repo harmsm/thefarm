@@ -104,16 +104,23 @@ void on_open_door(void){
     }    
     
     max_end_time = millis() + DOOR_MOVE_TIMEOUT;
-   
-    //* SET TO OPEN PIN CONFIGURATION ... WHATEVER THAT IS  
+  
+    /* Set motor to open door */ 
+    digitalWrite(MOTOR_PIN_0,LOW);
+    analogWrite(MOTOR_PIN_1,DOOR_PWM_DUTY);
+
     while (millis() < max_end_time){
-        if (analogRead(HALL_CLOSED_PIN) < HALL_CLOSED_CUTOFF) { 
-            /* SET TO NEUTRAL CONFIG */
+        
+        /* Stop door */
+        if (analogRead(HALL_OPEN_PIN) < HALL_OPEN_CUTOFF) { 
+            digitalWrite(MOTOR_PIN_1,LOW);
             return; 
         }
         delay(DOOR_SAMPLING_PERIOD); 
     }
 
+    /* Stop door */
+    digitalWrite(MOTOR_PIN_1,LOW);
     return;
         
 }
@@ -128,16 +135,22 @@ void on_close_door(void){
     }    
     
     max_end_time = millis() + DOOR_MOVE_TIMEOUT;
-   
-    //* SET TO CLOSED PIN CONFIGURATION ... WHATEVER THAT IS  
+  
+    /* Set motor to close door */ 
+    analogWrite(MOTOR_PIN_0,DOOR_PWM_DUTY);
+    digitalWrite(MOTOR_PIN_1,LOW);
+
     while (millis() < max_end_time){
-        if (analogRead(HALL_OPEN_PIN) < HALL_OPEN_CUTOFF) { 
-            /* SET TO NEUTRAL CONFIG */
+        if (analogRead(HALL_CLOSED_PIN) < HALL_CLOSED_CUTOFF) { 
+            /* stop door */
+            digitalWrite(MOTOR_PIN_0,LOW);
             return; 
         }
         delay(DOOR_SAMPLING_PERIOD); 
     }
 
+    /* stop door */
+    digitalWrite(MOTOR_PIN_0,LOW);
     return;
 
 }
@@ -165,6 +178,13 @@ void setup() {
     /* Set up the CmdMessenger */
     attach_callbacks();
 
+    /* Set up the motor (stopped) */
+
+    digitalWrite(MOTOR_PIN_0,LOW);
+    digitalWrite(MOTOR_PIN_1,LOW);
+
+    pinMode(MOTOR_PIN_0,OUTPUT);
+    pinMode(MOTOR_PIN_1,OUTPUT);
 }
 
 /* ---------------------------------------------------------------------------
@@ -185,6 +205,8 @@ void loop() {
     Serial.print(hall_closed_val);
     Serial.print("\n");
     */
+
+    int i;
 
     c.feedinSerialData();
 

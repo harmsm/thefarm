@@ -129,13 +129,13 @@ class Door:
       
         # Parse result  
         self._ambient_light = result[1][0]
-        open_sensor = result[1][1]
-        closed_sensor = result[1][2]
+        self._open_sensor = result[1][1]
+        self._closed_sensor = result[1][2]
         
         # interpret result
-        if open_sensor < 200 and closed_sensor > 900:
+        if self._open_sensor < 200 and self._closed_sensor > 900:
             self._door_state = "open"
-        elif open_sensor > 900 and closed_sensor < 200: 
+        elif self._open_sensor > 900 and self._closed_sensor < 200: 
             self._door_state = "closed"
         else:
             self._door_state = "unknown"
@@ -211,6 +211,26 @@ class Door:
         self._query()
 
         return self._ambient_light
+
+    @property
+    def open_sensor(self):
+        """
+        Return current reading from open sensor.
+        """
+
+        self._query()
+
+        return self._open_sensor
+    
+    @property
+    def closed_sensor(self):
+        """
+        Return current reading from closed sensor.
+        """
+
+        self._query()
+
+        return self._closed_sensor
     
     @property
     def last_check(self):
