@@ -124,6 +124,7 @@ class Door:
         self._arduino_msg.send("query")
         result = self._arduino_msg.receive()
         if result[0] != "query_return":
+            self._door_state = "unknown"
             err = "door query failed.\n"
             raise DoorException(err)
       
@@ -146,11 +147,16 @@ class Door:
         """
         Open the door.
         """
-        # send open door command
-        self._arduino_msg.send("open_door")
-        time.sleep(self._door_move_time)
 
-        # send status check and make sure it's open
+        # Check current state
+        self._query()
+
+        # Send open door command
+        if self._door_state != "open": 
+            self._arduino_msg.send("open_door")
+            time.sleep(self._door_move_time)
+
+        # Check current state
         self._query()
         if self._door_state != "open":
             err = "Door is reading {} after open request.\n".format(self._door_state)
@@ -160,11 +166,15 @@ class Door:
         """
         Close the door.
         """
-        # send close door command
-        self._arduino_msg.send("close_door")
-        time.sleep(self._door_move_time)
+        # Check current state
+        self._query()
 
-        # send forced status check and make sure it's open
+        # send close door command
+        if self._door_state != "closed":
+            self._arduino_msg.send("close_door")
+            time.sleep(self._door_move_time)
+
+        # Check current state
         self._query()
         if self._door_state != "closed":
             err = "Door is reading {} after close request.\n".format(self._door_state)

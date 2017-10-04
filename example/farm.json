@@ -1,7 +1,9 @@
 {
-    "latitude":44.025038,
-    "longitude":-123.085155,
-    "twilight":"civil",
+    "daylight":{  
+        "latitude":44.025038,
+        "longitude":-123.085155,
+        "twilight":"civil"
+    },
     "camera":{
         "interval":500
     },

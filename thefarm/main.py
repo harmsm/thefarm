@@ -6,6 +6,8 @@ __author__ = "Michael J. Harms (harmsm@gmail.com)"
 __date__ = "2017-04-30"
 __usage__ = "thefarm.py FARM_JSON_FILE [LOG_FILE]"
 
+from farm import Farm
+
 import sys, logging, datetime
 
 def main(argv=None):
@@ -26,10 +28,16 @@ def main(argv=None):
         pass
 
     print("Logging to {}".format(log_file))
-    logging.basicConfig(filename=log_file,level=logging.INFO)
+    logging.basicConfig(filename=log_file,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        level=logging.INFO)
     logging.info("Starting The Farm using {}.".format(json_file))
 
-    # Do looping ... 
+    try:
+        f = Farm(json_file)
+        f.start() 
+    except KeyboardInterrupt:
+        f.stop()
 
     logging.info("Stopping The Farm.")        
 
