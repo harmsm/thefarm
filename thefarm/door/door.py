@@ -249,3 +249,16 @@ class Door:
         """
 
         return self._last_check
+
+    @property
+    def web_content(self):
+        """
+        """
+
+        out = []
+        out.append('<div class="well">')
+   
+        #out.append('<div class="col-xs-6 col-m-3")
+        #current_state = self.door_date
+        #img_file = os.path.join("img","door_{}.png".format(current_state))
+        #out.append('<img class="img-responsive" src="{}" />'.format(img_file))

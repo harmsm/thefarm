@@ -54,3 +54,20 @@ class CameraMonitor:
         out.save(output_file,"JPEG")
 
         os.remove(tmp)
+
+    @property
+    def web_content(self):
+        """
+        """     
+
+        # Take new image (on it's own thread)
+        p = Process(target=self.capture)
+        p.start() 
+
+        # Return html pointing to image
+        out = []
+        out.append("<div class=\"well\">")
+        out.append("<img class=\"img-responsive\" src=\"cam_output.jpg\"/>")
+        out.append("</div>")
+ 
+        return "".join(out)
