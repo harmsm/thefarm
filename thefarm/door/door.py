@@ -44,7 +44,10 @@ class Door:
                           ("close_door",""),
                           ("who_are_you_return","s"),
                           ("query_return","iii"),
+                          ("door_open_return","i"),
+                          ("door_close_return","i"),
                           ("communication_error","s"))
+
         self._BAUD_RATE = 9600                   
 
         self._device_name = device_name
