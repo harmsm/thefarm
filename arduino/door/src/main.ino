@@ -3,8 +3,51 @@
 #include <math.h>
 #include "CmdMessenger.h"
 
-/* ---------------------------------------------------------------------------
- * Set values below to match "door" entry in farm json control file.         *
+/* 
+Reads the running average of ambient light. 
+
+If the light drops below a defined cutoff the system:
+
+    Reads a hall sensor that will be in contact with a magnet if the door is
+    closed.  If this sensor does not detect a magnetic field:
+
+        Activates a motor to close the door. The system then measures the state
+        of the "closed" hall sensor.  If it detects a magnet, the system stops
+        the motor.  If closing the door takes too long, the system will stop 
+        the motor.
+
+    The system turns off an external circuit by setting a defined output pin to
+    LOW.  In the system this code was written to control, this external circuit
+    has a power-hungry raspberry pi we want to turn off overnight.  
+
+If the light is above the defined cutoff.
+    
+    Reads a hall sensor that will be in contact with a magnet if the door is 
+    open.  If this sensor does nto detect a magnetic field:
+
+        Activates a motor to open the door. The system then measures the state
+        of the "open" hall sensor.  If it detects a magnet, the system stops
+        the motor.  If opening the door takes too long, the system will stop 
+        the motor.
+
+    The system turns on an external circuit by setting a defined output pin to
+    HIGH.  In the system this code was written to control, this external circuit
+    has a power-hungry raspberry pi we want to turn off overnight but have on 
+    during the day.  
+
+The software is also configured to communicate information (on request) from an
+external computer connected via the serial port running CmdMessenger.  The 
+external computer can query the light and hall sensor levels, as well as open
+and close the door.  These commands are transient, in that the main loop on the
+arduino will overwrite their state if conditions are right.  For example, if 
+the external computer says to open the door at night, the system will close it 
+again the next time it reads the ambient light as low.
+*/
+
+
+/* ------------------------------------------------------------------------- *
+ * Set values below to match "door" entry in farm json control file if this  *
+ * device is interfaced with a raspberry pi running a thefarm.Door instance. *
  * ------------------------------------------------------------------------- */
 
 /* Serial communications */
@@ -22,11 +65,16 @@ const int HALL_CLOSED_PIN = 2;  // closed hall sensor (any pin)
 const int MOTOR_PIN_0 = 5;      // control pin for motor. should be pwm.
 const int MOTOR_PIN_1 = 6;      // control pin for motor. should be pwm.
 
+// control pin for turning external circuit on or off
+const int EXTERNAL_CIRCUIT_PIN = 7; 
+
 /* --------------------------------------------------------------------------*
  * Keep track of moving average for ambient light                            *
  * ------------------------------------------------------------------------- */
 
-int AMBIENT_LIGHT_OBS[10] = {0,0,0,0,0,0,0,0,0,0};
+// AMBIENT_LIGHT_OBS should have the same length as RUNNING_AVERAGE_LENGTH
+int RUNNING_AVERAGE_LENGTH = 5;
+int AMBIENT_LIGHT_OBS[5] = {0,0,0,0,0}; 
 
 /* ---------------------------------------------------------------------------
  * Control parameters for the motors themselves.                             *
@@ -48,16 +96,14 @@ const int DOOR_MOVE_TIMEOUT = 3000;
 // speed (255) 
 const int DOOR_PWM_DUTY = 100; 
 
-// How often to delay between checking motor movement
+// How often to delay between checking motor movement (milliseconds)
 const int DOOR_SAMPLING_PERIOD = 50;
 
-// How often to check the sensor
-const int SAMPLING_PERIOD = 5000;
+// How often to check the sensor and read serial comms (milliseconds)
+const int SAMPLING_PERIOD = 500;
 
 /* ---------------------------------------------------------------------------
- *                                                                           *
  * Stuff below here shouldn't need to be changed                             *
- *                                                                           *
  * ------------------------------------------------------------------------- */
 
 /* Attach a CmdMessenger instance to the default serial port */
@@ -76,13 +122,13 @@ enum {
     communication_error,
 };
 
-/* Callbacks */
+/* CmdMessenger callbacks */
 
 void on_unknown_command(void){
     
     /* If there is an error */
 
-    c.sendCmd(communication_error,"Command without callback.");
+    c.sendCmd(communication_error,"Unknown command.");
 }
 
 void on_who_are_you(void){
@@ -144,6 +190,8 @@ void attach_callbacks(void) {
     c.attach(close_door,on_close_door);
 
 }
+
+/* Hardware control functions */
 
 int open_the_door(){
 
@@ -210,10 +258,21 @@ int close_the_door(){
 
 }
 
-void door_check(){
+void turn_on_external_circuit(void){
+    /* Turn on the external circuit */
+    digitalWrite(EXTERNAL_CIRCUIT_PIN,HIGH);
+}
 
-    /* Check to see if the door should be opened or closed based on the
-     * the running average of the ambient light sensor. */
+void turn_off_external_circuit(void){
+    /* Turn off the external circuit */
+    digitalWrite(EXTERNAL_CIRCUIT_PIN,LOW);
+}
+
+void light_check(){
+
+    /* Check to see if the door should be opened or closed and the external 
+     * circuit on or off based on the running average of the ambient light
+     * sensor. */
 
     int i;
     int ambient_light, hall_open, hall_closed;
@@ -222,32 +281,39 @@ void door_check(){
     /* Update ambient light obervations. The last observation is placed
      * in the last position */
     ambient_average = 0;
-    for (i = 0; i < 9; i++){
+    for (i = 0; i < (RUNNING_AVERAGE_LENGTH-1); i++){
         AMBIENT_LIGHT_OBS[i] = AMBIENT_LIGHT_OBS[i+1];
         ambient_average = ambient_average + AMBIENT_LIGHT_OBS[i];
     }
-    AMBIENT_LIGHT_OBS[9] = analogRead(AMBIENT_PIN);
-    ambient_average = ambient_average + AMBIENT_LIGHT_OBS[9];
-    ambient_average = ambient_average/10.0;
+    AMBIENT_LIGHT_OBS[RUNNING_AVERAGE_LENGTH-1] = analogRead(AMBIENT_PIN);
+    ambient_average = ambient_average + AMBIENT_LIGHT_OBS[RUNNING_AVERAGE_LENGTH-1];
+    ambient_average = ambient_average/RUNNING_AVERAGE_LENGTH;
 
     /* See if sensors pass cutoffs */
-    ambient_light = ambient_average < AMBIENT_LIGHT_CUTOFF;
+    ambient_light = ambient_average > AMBIENT_LIGHT_CUTOFF;
     hall_open = analogRead(HALL_OPEN_PIN) < HALL_OPEN_CUTOFF;
     hall_closed = analogRead(HALL_CLOSED_PIN) < HALL_CLOSED_CUTOFF;
 
-    /* Dark and open -> close */
-    if (ambient_light){
-        if (hall_open){
-            close_the_door();
-        }
-
     /* Light and closed -> open */
-    } else {
+    if (ambient_light){
         if (hall_closed){
             open_the_door();
         }
+
+    /* Dark and open -> closed */
+    } else {
+        if (hall_open){
+            close_the_door();
+        }
     }
-        
+      
+    /* Turn the external circuit on or off depending on ambient light */ 
+    if (ambient_light){
+        turn_on_external_circuit();
+    } else { 
+        turn_off_external_circuit();
+    }
+ 
 }
 
 
@@ -256,6 +322,8 @@ void door_check(){
  * -------------------------------------------------------------------------- */
 
 void setup() {
+
+    int i;
     
     /* Initialize serial communication at BAUD_RATE bits per second: */
     Serial.begin(BAUD_RATE);
@@ -264,12 +332,21 @@ void setup() {
     attach_callbacks();
 
     /* Set up the motor (stopped) */
-
     digitalWrite(MOTOR_PIN_0,LOW);
     digitalWrite(MOTOR_PIN_1,LOW);
-
     pinMode(MOTOR_PIN_0,OUTPUT);
     pinMode(MOTOR_PIN_1,OUTPUT);
+
+    /* Set up the external circuit (on) */
+    digitalWrite(EXTERNAL_CIRCUIT_PIN,HIGH);
+    pinMode(EXTERNAL_CIRCUIT_PIN,OUTPUT);
+
+    /* Set up the ambient light sensor */
+    /* Populate moving average for ambient light with current ambient light */
+    for (i = 0; i < RUNNING_AVERAGE_LENGTH; i++){
+        AMBIENT_LIGHT_OBS[i] = analogRead(AMBIENT_PIN);
+    }
+        
 }
 
 /* ---------------------------------------------------------------------------
@@ -278,10 +355,11 @@ void setup() {
 
 void loop() {
 
+    /* Serial interface */
     c.feedinSerialData();
 
-    /* See if we should open or close the door */
-    door_check();
+    /* Check the light level and respond appropriately*/
+    light_check();
 
     delay(SAMPLING_PERIOD);
 
