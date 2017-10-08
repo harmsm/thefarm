@@ -60,14 +60,10 @@ class CameraMonitor:
         """
         """     
 
-        # Take new image (on it's own thread)
-        p = Process(target=self.capture)
-        p.start() 
-
         # Return html pointing to image
         out = []
-        out.append("<div class=\"well\">")
-        out.append("<img class=\"img-responsive\" src=\"cam_output.jpg\"/>")
-        out.append("</div>")
+        out.append('<div class="well"><div class="row">')
+        out.append('<img class="img-responsive" src="cam_output.jpg"/>')
+        out.append("</div></div>")
  
         return "".join(out)

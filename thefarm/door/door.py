@@ -256,9 +256,22 @@ class Door:
         """
 
         out = []
-        out.append('<div class="well">')
-   
-        #out.append('<div class="col-xs-6 col-m-3")
-        #current_state = self.door_date
-        #img_file = os.path.join("img","door_{}.png".format(current_state))
-        #out.append('<img class="img-responsive" src="{}" />'.format(img_file))
+        out.append('<div class="well"><div class="row">')
+ 
+        # Image icon  
+        out.append('<div class="col-xs-6 col-m-3">')
+        current_state = self.door_state
+        img_file = os.path.join("img","door_{}.png".format(current_state))
+        out.append('<img class="img-responsive" src="{}" />'.format(img_file))
+        out.append('</div>')
+
+        # numbers
+        out.append('<div class="col-xs-6 col-m-9">')
+        out.append("ambient light: {}".format(self.ambient_light))
+        out.append("<br/>")
+        out.append("door status: {}".format(self.door_state))
+        out.append("</div>")
+
+        out.append("</div></div>")
+
+        return "".join(out)
